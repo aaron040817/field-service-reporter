@@ -1,0 +1,2526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Field Service Reporter</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .hidden { display: none; }
+    section { margin-bottom: 30px; border: 1px solid #ccc; padding: 15px; border-radius: 5px; }
+    label { display: block; margin-top: 10px; }
+    input, select, button, textarea { margin-top: 5px; display: block; width: 100%; padding: 5px; }
+    .btn-group button { width: auto; display: inline-block; margin-right: 10px; }
+    .readonly { background: #f0f0f0; }
+  .search-results {
+  border: 1px solid #ccc;
+  max-height: 150px;
+  overflow-y: auto;
+  background: white;
+  position: relative;
+  z-index: 10;
+}
+
+.search-results div {
+  padding: 5px;
+  cursor: pointer;
+}
+
+.search-results div:hover {
+  background-color: #f0f0f0;
+}
+
+</style>
+<style>
+  .suggestions-box {
+    border: 1px solid #ccc;
+    max-height: 150px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    width: 100%;
+    z-index: 999;
+  }
+  .suggestions-box div {
+    padding: 5px;
+    cursor: pointer;
+  }
+  .suggestions-box div:hover {
+    background-color: #f0f0f0;
+  }
+</style>
+<style>
+#reportSuggestions {
+  border: 1px solid #ccc;
+  background: white;
+  max-height: 200px;
+  overflow-y: auto;
+  position: absolute;
+  z-index: 999;
+  width: 100%;
+}
+#reportSuggestions div {
+  padding: 4px;
+  cursor: pointer;
+}
+#reportSuggestions div:hover {
+  background: #eee;
+}
+#searchResultsUpdate {
+  border: 1px solid #ccc;
+  background: white;
+  max-height: 200px;
+  overflow-y: auto;
+  position: absolute;
+  z-index: 999;
+  width: 100%;
+}
+#searchResultsUpdate div {
+  padding: 4px;
+  cursor: pointer;
+}
+#searchResultsUpdate div:hover {
+  background: #eee;
+}
+
+</style>
+
+</head>
+
+<body>
+<section id="userSection" class="hidden">
+  <h2>Manage Users</h2>
+
+  <label>Username: <input id="userUsername" /></label>
+ <label>Password: 
+  <input id="userPassword" type="password" />
+  <input type="checkbox" onclick="toggleUserPassword()"> Show
+</label>
+
+  <label>Role:
+    <select id="userRole">
+      <option value="">-- Select --</option>
+      <option value="admin">Admin</option>
+      <option value="user">User</option>
+    </select>
+  </label>
+
+  <div class="btn-group">
+    <button onclick="addUser()">Add</button>
+    <button onclick="updateUser()">Update</button>
+    <button onclick="deleteUser()">Delete</button>
+    <button onclick="prevUser()">&#8592;</button>
+    <button onclick="nextUser()">&#8594;</button>
+    <button onclick="clearUserForm()">Clear</button>
+    <button onclick="goHome()">Back to HomePage</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</section>
+<section id="submitRequestSection" class="hidden">
+  <h2>Submit Request</h2>
+
+  <label>Who do you want to update?</label>  
+
+<label>Search Publisher:</label>
+<input type="text" id="requestSearch" oninput="filterRequestSuggestions()" placeholder="Type to search..." />
+<div id="requestSuggestions" class="suggestions-box"></div>
+
+<label>Publisher Name:
+  <select id="requestPublisher" onchange="checkAndPrefillRequestData()">
+    <option value="">-- Select --</option>
+  </select>
+</label>
+
+  <label>What Service Year and Month do you want to update?</label>
+  <label>Service Year:</label>
+ <select id="requestYear" onchange="populateRequestMonthYearOptions()"></select>
+
+  <label>Month and Year:</label>
+ <select id="requestMonth"></select>
+
+  <!-- Optional: placeholder for hidden fields that show later -->
+  <div id="requestEditFields" class="hidden">
+  <label>Field Hours: <input type="number" id="requestHours" onchange="handleRequestHoursChange()" /></label>
+  <label>Bible Studies: <input type="number" id="requestStudies" /></label>
+  <label><input type="checkbox" id="requestShared" /> Shared in Ministry</label>
+  <div id="requestAuxPioneerDiv">
+    <label><input type="checkbox" id="requestAuxPioneer" /> Auxiliary Pioneer</label>
+      
+</div>
+  <div id="requestAuxiQuestionDiv" class="hidden">
+    <label>Is the Publisher an Auxiliary Pioneer This Month?
+      <select id="requestAuxiQuestion" onchange="applyRequestValidation()">
+        <option value="">-- Select --</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+    </label>
+  </div>
+</div>
+
+  <div class="btn-group">
+    <button onclick="submitApprovalRequest()">Submit Request for Admin Approval</button>
+    <button onclick="initSubmitRequest()">Clear</button>
+    <button onclick="goHome()">Back to HomePage</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</section>
+
+<section id="updateSection" class="hidden">
+  <h2>Update Report</h2>
+<label>Search Publisher:
+<input type="text" id="searchUpdatePublisher" oninput="filterUpdateSuggestions()" autocomplete="off" />
+  <div id="searchResultsUpdate" class="search-results"></div>
+</label>
+  <label>Publisher Name:
+    <select id="updatePublisher" onchange="handleUpdateLoad()">
+      <option value="">-- Select --</option>
+    </select>
+  </label>
+
+  <label>Service Year:
+    <select id="updateYear" onchange="populateUpdateMonthYearOptions()"></select>
+  </label>
+
+  <label>Month and Year:
+    <select id="updateMonthYear" onchange="handleUpdateLoad()"></select>
+  </label>
+
+  <label>Field Service Group: <input id="updateFSG" readonly class="readonly" /></label>
+  <label>Privilege2: <input id="updatePriv2" readonly class="readonly" /></label>
+<div id="auxiQuestionDivUpdate">
+  <label>Is The Publisher An Auxiliary Pioneer This Month?
+    <select id="auxiQuestionUpdate" onchange="validateUpdatePrivilegeLogic();">
+      <option value="">-- Select --</option>
+      <option value="Yes">Yes</option>
+      <option value="No">No</option>
+    </select>
+  </label>
+</div>
+
+  <label>Field Hours: <input
+  type="number"
+  id="updateHours"
+  min="0"
+  onkeydown="preventInvalidInput(event);"
+  oninput="updateHandleHoursChange(); validateHoursInput(this);"
+
+/>
+
+</label>
+  <label>Bible Studies: <input type="number" id="updateStudies" min="0" /></label>
+  <label><input type="checkbox" id="updateShared" disabled /> Shared in Ministry</label>
+<div id="auxPioneerDivUpdate" class="hidden">
+  <label>
+    <input type="checkbox" id="auxPioneerCheckboxUpdate" disabled>
+    Auxiliary Pioneer
+  </label>
+</div>
+
+  <div class="btn-group">
+    <button onclick="updateReport()">Update</button>
+    <button onclick="deleteReport()">Delete</button>
+    <button onclick="clearUpdateForm()">Clear</button>
+    <button onclick="goHome()">Back to HomePage</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</section>
+
+<section id="reportSection" class="hidden">
+  <h2>Add Report</h2>
+  <label>Search Publisher:
+  <input type="text" id="searchReportPublisher" oninput="filterReportSuggestions()" placeholder="Search Publisher..." />
+<div id="reportSuggestions" class="suggestions-box"></div>
+</label>
+  <label>Publisher Name:
+    <select
+  id="reportPublisher"
+  onchange="clearReportForm(true); setDefaultServiceYearAndMonth(); handlePrivilegeLogic();"
+>
+      <option value="">-- Select --</option>
+    </select>
+  </label>
+  <label>Field Service Group:
+    <input id="reportFSG" readonly class="readonly" />
+  </label>
+  <label>Privilege2:
+    <input id="reportPriv2" readonly class="readonly" />
+  </label>
+   <label>Service Year:</label>
+ <select id="reportYear" onchange="populateRequestMonthYearOptions()"></select>
+
+  <label>Month and Year:</label>
+ <select id="reportMonthYear"></select>
+  
+  <label>Field Hours:
+    <input
+  id="reportHours"
+  type="number"
+  min="1"
+  step="1"
+  onkeydown="preventInvalidInput(event)"
+  oninput="validateSharedCheckbox(); validateAuxiliaryCheckbox(); validatePublisherAuxiCheckbox(); handlePublisherAuxiLogic(); validateHoursInput(this);"
+/>
+
+  </label>
+  <label>Bible Studies:
+    <input type="number" id="reportStudies" min="0" />
+  </label>
+  <label>
+    <input type="checkbox" id="reportShared" disabled /> Shared in Ministry
+  </label>
+  <div id="auxPioneerDiv" class="hidden">
+  <label>
+    <input type="checkbox" id="auxPioneerCheckbox" disabled>
+    Auxiliary Pioneer
+  </label>
+</div>
+
+  <div id="auxiQuestionDiv" class="hidden">
+    <label>Is the Publisher an Auxiliary Pioneer This Month?
+      <select
+  id="auxiQuestion"
+  onchange="handlePublisherAuxiLogic();"
+>
+  <option value="">-- Select --</option>
+  <option value="Yes">Yes</option>
+  <option value="No">No</option>
+</select>
+
+    </label>
+  </div>
+
+  <div class="btn-group">
+    <button onclick="saveReport()">Save Report</button>
+    <button onclick="clearReportForm()">Clear</button>
+    <button onclick="goHome()">Back to HomePage</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</section>
+
+  <section id="loginSection">
+    <h2>Login</h2>
+    <label>Username: <input id="username" /></label>
+    <label>Password: <input type="password" id="password" /></label>
+    <button onclick="login()">Login</button>
+  </section>
+
+  <section id="homeSection" class="hidden">
+    <h2>Welcome, <span id="currentUser"></span>!</h2>
+    <div class="btn-group">
+  <button id="btnManagePublisher" onclick="showSection('publisherSection')">Manage Publisher Record</button>
+  <button id="btnApproval" onclick="showSection('adminApprovalSection')">Review Approvals</button>
+  <!-- This button is always shown -->
+<button onclick="showSection('reportSection')">Add Report</button>
+
+<!-- These two are only for users (not admins) -->
+<span id="userButtons" style="display: none;">
+  <button onclick="showSection('submitRequestSection')">Submit Request</button>
+</span>
+  <button id="btnUpdateReport" onclick="showSection('updateSection')" style="display: none;">Update Report</button>
+  <button id="btnExport" onclick="exportToExcel()">Export to Excel</button>
+  <button onclick="logout()">Logout</button>
+  <button id="btnManageUsers" onclick="accessManageUsers()">Manage Users</button>
+  
+ <div style="margin-top: 30px;">
+  <button onclick="confirmClearAllData()">Clear All Data</button><br>
+  <small style="color:red;">Warning: This will delete all publisher and report data.</small>
+</div>
+  
+</div>
+  </section>
+<section id="allReportSection" class="hidden">
+  <h2>All Publishers – S-21 Reports</h2>
+
+  <label>Select Service Year:
+    <select id="allReportYear"></select>
+  </label>
+
+  <button onclick="generateAllReports()">Generate All</button>
+  <button onclick="printAllReports()">Print</button>
+
+  <div id="allReportOutput"></div>
+
+  <button onclick="goHome()">Back to HomePage</button>
+  <button onclick="logout()">Logout</button>
+</section>
+<section id="publisherSection" class="hidden">
+  <h2>Manage Publisher Record</h2>
+
+  <label>First Name: <input id="pubFirstName" /></label>
+  <label>Last Name: <input id="pubLastName" /></label>
+  
+  <label>Birthdate: <input type="date" id="pubBirthdate" /></label>
+
+  <label>Baptism Status:
+    <select id="pubBaptized" onchange="toggleBaptismDate()">
+      <option value="">-- Select --</option>
+      <option value="Baptized">Baptized</option>
+      <option value="Unbaptized Publisher">Unbaptized Publisher</option>
+      <option value="Baptized but cannot remember the date">Baptized but cannot remember the date</option>
+    </select>
+  </label>
+  
+  <label id="baptismDateLabel" class="hidden">Baptism Date: <input type="date" id="baptismDate" /></label>
+
+  <label>Gender:
+    <select id="pubGender">
+      <option value="">-- Select --</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+    </select>
+  </label>
+
+  <label>Hope:
+    <select id="pubHope">
+      <option value="">-- Select --</option>
+      <option value="Other Sheep">Other Sheep</option>
+      <option value="Anointed">Anointed</option>
+    </select>
+  </label>
+
+  <label>Privilege:
+    <select id="pubPrivilege">
+      <option value="">-- Select --</option>
+      <option value="Elder">Elder</option>
+      <option value="Ministerial Servant">Ministerial Servant</option>
+      <option value="Not Applicable">Not Applicable</option>
+    </select>
+  </label>
+
+  <label>Privilege2:
+    <select id="pubPrivilege2">
+      <option value="">-- Select --</option>
+      <option>Regular Pioneer</option>
+      <option>Special Pioneer</option>
+      <option>Field Missionary</option>
+      <option>Continuous Auxiliary Pioneer</option>
+      <option>Publisher/Auxi</option>
+    </select>
+  </label>
+
+  <label>Field Service Group:
+    <select id="pubFSG">
+      <option value="">-- Select --</option>
+      <option>Field Service Group 1</option>
+      <option>Field Service Group 2</option>
+      <option>Field Service Group 3</option>
+      <option>Field Service Group 4</option>
+      <option>Field Service Group 5</option>
+      <option>Field Service Group 6</option>
+      <option>Field Service Group 7</option>
+      <option>Field Service Group 8</option>
+    </select>
+  </label>
+
+  <div class="btn-group">
+    <button onclick="addPublisher()">Add</button>
+    <button onclick="editPublisher()">Update</button>
+    <button onclick="deletePublisher()">Delete</button>
+    <button onclick="prevPublisher()">&#8592;</button>
+    <button onclick="nextPublisher()">&#8594;</button>
+    <button onclick="clearPublisherForm()">Clear</button>
+    <button onclick="goHome()">Back to HomePage</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</section>
+  <!-- Dito natin ilalagay mamaya ang iba pang sections (Add Report, Manage Users, etc.) -->
+
+  <script>
+    // === Global Variables ===
+    let currentUser = null;
+    let users = [
+      { username: 'admin', password: 'admin123', role: 'admin' },
+      { username: 'user1', password: 'user123', role: 'user' }
+    ];
+
+    // === Login Logic ===
+    function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      const user = users.find(u => u.username === username && u.password === password);
+
+      if (!user) {
+        alert("Invalid credentials.");
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        return;
+      }
+
+      currentUser = user;
+      document.getElementById('currentUser').textContent = user.username;
+
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('homeSection').classList.remove('hidden');
+
+      // Hide admin buttons if user role
+      document.getElementById('btnManagePublisher').style.display = user.role === 'admin' ? 'inline-block' : 'none';
+      document.getElementById('userButtons').style.display = user.role === 'user' ? 'inline-block' : 'none';
+      document.getElementById('btnManageUsers').style.display = user.role === 'admin' ? 'inline-block' : 'none';
+      document.getElementById('btnExport').style.display = user.role === 'admin' ? 'inline-block' : 'none';
+      document.getElementById("btnApproval").style.display = user.role === 'admin' ? 'inline-block' : 'none';
+      document.getElementById('btnUpdateReport').style.display = user.role === 'admin' ? 'inline-block' : 'none';
+    }
+
+ function showSection(id) {
+  hideAllSections();
+  document.getElementById(id).classList.remove('hidden');
+
+  // User Role: Add Report
+ if (id === "reportSection") {
+  clearReportForm();        // ✅ I-clear muna
+  initReportSection();      // ✅ Tsaka i-setup ulit ang fields
+  document.getElementById("searchReportPublisher").value = ""; // ✅ Clear search text box
+}
+
+  // Admin Role: Manage Publisher
+  if (id === "publisherSection") {
+    clearPublisherForm();
+  }
+
+  // Update Section
+  if (id === "updateSection") {
+  initUpdateSection();
+  clearUpdateForm(); // ✅ Reset fields to default disabled/hidden
+  document.getElementById("searchUpdatePublisher").value = ""; // ✅ Clear search box
+  document.getElementById("searchResultsUpdate").innerHTML = ""; // ✅ Clear suggestions
+  document.getElementById("searchResultsUpdate").style.display = "none"; // ✅ Hide suggestion box
+}
+
+  // All Reports Section
+  if (id === "allReportSection") {
+    populateAllReportYear();
+  }
+
+  // User: Submit Request
+  if (id === "submitRequestSection") {
+    loadReportsFromLocalStorage();
+    initSubmitRequestSection();
+  }
+
+    // ✅ Admin: Review Approval Requests
+  if (id === "adminApprovalSection") {
+    loadAdminApprovalList();
+  }
+}
+
+    function hideAllSections() {
+      const sections = document.querySelectorAll('section');
+      sections.forEach(sec => sec.classList.add('hidden'));
+    }
+  </script>
+<section id="adminApprovalSection" class="hidden">
+  <h2>Pending Requests for Approval</h2>
+  <div id="adminApprovalList"></div>
+  <div class="btn-group">
+    <button onclick="goHome()">Back to HomePage</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</section>
+
+</body>
+
+<script>
+let approvalRequests = []; // Already correct
+let currentPubIndex = -1;
+const publishers = [];      // Already correct
+let reports = [];           // ✅ ADD THIS LINE
+
+function toggleBaptismDate() {
+  const baptismStatus = document.getElementById("pubBaptized").value;
+  const label = document.getElementById("baptismDateLabel");
+  label.classList.toggle("hidden", baptismStatus !== "Baptized");
+}
+
+function addPublisher() {
+  const publisher = getPublisherFromForm();
+
+  if (!publisher.firstName || !publisher.lastName || !publisher.gender || !publisher.hope || !publisher.privilege || !publisher.privilege2 || !publisher.fsg || !publisher.baptismStatus || !publisher.birthdate) {
+    alert("Please fill in all required fields.");
+    return;
+  }
+
+  const duplicate = publishers.find(p =>
+    p.firstName.toLowerCase() === publisher.firstName.toLowerCase() &&
+    p.lastName.toLowerCase() === publisher.lastName.toLowerCase() &&
+    p.birthdate === publisher.birthdate
+  );
+
+  if (duplicate) {
+    alert("Duplicate record found! A publisher with the same first name, last name, and birthdate already exists.");
+    return;
+  }
+
+  publisher.fullName = `${publisher.lastName}, ${publisher.firstName}`;
+  publishers.push(publisher);
+  currentPubIndex = publishers.length - 1;
+  savePublishersToLocalStorage();
+  loadPublisher(publishers[currentPubIndex]);
+  alert("Publisher added.");
+  clearPublisherForm();
+  refreshAllPublisherDropdowns(); // ✅ THEN tsaka mag-refresh ng dropdowns
+}
+
+function editPublisher() {
+  if (currentPubIndex < 0 || currentPubIndex >= publishers.length) return;
+
+  const confirmed = confirm("Are You Sure You Want to Update This Record?");
+  if (!confirmed) return;
+
+  const updated = getPublisherFromForm();
+  publishers[currentPubIndex] = updated;
+  savePublishersToLocalStorage();
+  alert("Publisher updated.");
+  clearPublisherForm();
+  refreshAllPublisherDropdowns(); // ✅ THEN tsaka mag-refresh ng dropdowns
+}
+
+function deletePublisher() {
+  if (currentPubIndex < 0 || currentPubIndex >= publishers.length) return;
+
+  const confirmed = confirm("Are You Sure You Want to Delete This Record?");
+  if (!confirmed) return;
+
+  publishers.splice(currentPubIndex, 1); // tanggalin yung current record
+  savePublishersToLocalStorage();
+  alert("Publisher deleted."); // ✅ magpakita ng alert
+  currentPubIndex = -1; // ✅ i-reset ang index
+  clearPublisherForm(); // ✅ i-clear ang lahat ng fields
+  refreshAllPublisherDropdowns(); // ✅ THEN tsaka mag-refresh ng dropdowns
+}
+
+function prevPublisher() {
+  if (currentPubIndex > 0) {
+    currentPubIndex--;
+    loadPublisher(publishers[currentPubIndex]);
+  } else {
+    alert("This is the first record.");
+  }
+}
+
+function nextPublisher() {
+  if (currentPubIndex < publishers.length - 1) {
+    currentPubIndex++;
+    loadPublisher(publishers[currentPubIndex]);
+  } else {
+    alert("This is the last record.");
+  }
+}
+
+function loadPublisher(pub) {
+  document.getElementById("pubFirstName").value = pub.firstName;
+  document.getElementById("pubLastName").value = pub.lastName;
+  document.getElementById("pubGender").value = pub.gender;
+  document.getElementById("pubHope").value = pub.hope;
+  document.getElementById("pubPrivilege").value = pub.privilege;
+  document.getElementById("pubFSG").value = pub.fsg;
+  document.getElementById("pubBaptized").value = pub.baptismStatus;
+  document.getElementById("baptismDate").value = pub.baptismDate || "";
+  document.getElementById("pubBirthdate").value = pub.birthdate || "";
+  document.getElementById("pubPrivilege2").value = pub.privilege2 || "";
+
+  // toggle Baptism Date field visibility
+  toggleBaptismDate();
+}
+
+function getPublisherFromForm() {
+  const firstName = document.getElementById("pubFirstName").value.trim();
+  const lastName = document.getElementById("pubLastName").value.trim();
+
+  return {
+    firstName,
+    lastName,
+    fullName: `${lastName}, ${firstName}`, // ✅ Always include this
+    birthdate: document.getElementById("pubBirthdate").value,
+    baptismStatus: document.getElementById("pubBaptized").value,
+    baptismDate: document.getElementById("baptismDate").value,
+    gender: document.getElementById("pubGender").value,
+    hope: document.getElementById("pubHope").value,
+    privilege: document.getElementById("pubPrivilege").value,
+    privilege2: document.getElementById("pubPrivilege2").value,
+    fsg: document.getElementById("pubFSG").value
+  };
+}
+function clearPublisherForm() {
+  document.getElementById("pubFirstName").value = "";
+  document.getElementById("pubLastName").value = "";
+  document.getElementById("pubBirthdate").value = "";
+  document.getElementById("pubBaptized").value = "";
+  document.getElementById("baptismDate").value = "";
+  document.getElementById("pubGender").value = "";
+  document.getElementById("pubHope").value = "";
+  document.getElementById("pubPrivilege").value = "";
+  document.getElementById("pubPrivilege2").value = "";
+  document.getElementById("pubFSG").value = "";
+
+  // Hide baptism date field
+  document.getElementById("baptismDateLabel").classList.add("hidden");
+
+  // Reset current index
+  currentPubIndex = -1;
+}
+
+</script>
+<script>
+  function goHome() {
+    // Hide all sections
+    document.querySelectorAll("section").forEach(sec => sec.classList.add("hidden"));
+    // Show home section
+    document.getElementById("homeSection").classList.remove("hidden");
+  }
+
+  function logout() {
+  currentUser = null; // reset user session
+  document.getElementById("username").value = "";
+  document.getElementById("password").value = "";
+  
+  hideAllSections(); // centralized way to hide all app sections
+  document.getElementById("loginSection").classList.remove("hidden");
+}
+
+// ✅ Paste here
+function confirmClearAllData() {
+  const pass = prompt("Enter Admin Password to confirm data deletion:");
+  if (pass !== "Alatirisgirl040817") {
+    if (pass !== null) alert("Incorrect password.");
+    return;
+  }
+
+  const confirmed = confirm("Are you sure you want to delete ALL DATA? This action cannot be undone.");
+  if (!confirmed) return;
+
+  // 🔴 Clear all stored data
+  localStorage.removeItem("publishers");
+  localStorage.removeItem("reports");
+  localStorage.removeItem("approvalRequests");
+
+  // 🔄 Clear current session memory too
+  publishers.length = 0;
+  reports.length = 0;
+  approvalRequests.length = 0;
+
+  alert("All data has been deleted.");
+  logout(); // Return to login screen
+}
+
+</script>
+<script>
+  
+  let currentReportIndex = -1;
+
+function populateMonthYearOptions() {
+  const yearSelect = document.getElementById("reportYear");
+  const monthSelect = document.getElementById("reportMonthYear");
+  const selectedYear = parseInt(yearSelect.value, 10);
+
+  if (isNaN(selectedYear)) return;
+
+  monthSelect.innerHTML = "";
+
+  const months = [
+    { value: "September", year: selectedYear - 1 },
+    { value: "October", year: selectedYear - 1 },
+    { value: "November", year: selectedYear - 1 },
+    { value: "December", year: selectedYear - 1 },
+    { value: "January", year: selectedYear },
+    { value: "February", year: selectedYear },
+    { value: "March", year: selectedYear },
+    { value: "April", year: selectedYear },
+    { value: "May", year: selectedYear },
+    { value: "June", year: selectedYear },
+    { value: "July", year: selectedYear },
+    { value: "August", year: selectedYear }
+  ];
+
+  const blankOpt = document.createElement("option");
+  blankOpt.value = "";
+  blankOpt.text = "-- Select --";
+  monthSelect.appendChild(blankOpt);
+
+  months.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = `${m.value} ${m.year}`;
+    opt.text = `${m.value} ${m.year}`;
+    monthSelect.appendChild(opt);
+  });
+}
+
+function populateServiceYearOptions() {
+  const select = document.getElementById("reportYear");
+  select.innerHTML = '<option value="">-- Select --</option>';
+  for (let y = 2015; y <= 2200; y++) {
+    const option = document.createElement("option");
+    option.value = y;
+    option.textContent = y;
+    select.appendChild(option);
+  }
+}
+
+function populatePublisherDropdown() {
+  const dropdown = document.getElementById("reportPublisher");
+  dropdown.innerHTML = '<option value="">-- Select --</option>';
+
+  publishers.forEach(p => {
+    const fullName = `${p.lastName}, ${p.firstName}`;
+    const opt = document.createElement("option");
+    opt.value = fullName;
+    opt.textContent = fullName;
+    dropdown.appendChild(opt);
+  });
+}
+
+function initUpdateSection() {
+  populateUpdatePublisherDropdown();
+
+  const yearSelect = document.getElementById("updateYear");
+  const monthSelect = document.getElementById("updateMonthYear");
+
+  // Populate years
+  yearSelect.innerHTML = '<option value="">-- Select --</option>';
+  for (let y = 2015; y <= 2200; y++) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.text = y;
+    yearSelect.appendChild(opt);
+  }
+
+  // Populate months
+  monthSelect.innerHTML = '<option value="">-- Select --</option>';
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const months = ["September", "October", "November", "December",
+                  "January", "February", "March", "April", "May", "June", "July", "August"];
+  for (let i = 0; i < months.length; i++) {
+    const yr = i < 4 ? currentYear - 1 : currentYear;
+    const opt = document.createElement("option");
+    opt.value = `${months[i]} ${yr}`;
+    opt.textContent = `${months[i]} ${yr}`;
+    monthSelect.appendChild(opt);
+  }
+
+  clearUpdateForm(); 
+}
+
+function clearUpdateForm(keepSelections = false) {
+  if (!keepSelections) {
+    document.getElementById("updatePublisher").value = "";
+    document.getElementById("searchUpdatePublisher").value = "";
+    document.getElementById("updateYear").value = "";
+    document.getElementById("updateMonthYear").value = "";
+  }
+
+  document.getElementById("updateFSG").value = "";
+  document.getElementById("updatePriv2").value = "";
+  document.getElementById("updateHours").value = "";
+  document.getElementById("updateStudies").value = "";
+  document.getElementById("updateShared").checked = false;
+  document.getElementById("auxPioneerCheckboxUpdate").checked = false;
+  document.getElementById("auxiQuestionUpdate").value = "";
+
+  // ✅ Disable inputs
+  document.getElementById("updateHours").disabled = true;
+  document.getElementById("updateStudies").disabled = true;
+  document.getElementById("updateShared").disabled = true;
+
+  // ✅ Hide sections
+  document.getElementById("auxPioneerDivUpdate").classList.add("hidden");
+  document.getElementById("auxiQuestionDivUpdate").classList.add("hidden");
+
+}
+
+function handleUpdateLoad() {
+  const name = document.getElementById("updatePublisher").value;
+  const sy = document.getElementById("updateYear").value;
+  const my = document.getElementById("updateMonthYear").value;
+
+  if (!name || !sy || !my) {
+    clearUpdateForm(true);  // ✅ Keep dropdown selections
+    return;
+  }
+
+  console.log("Selected:", name, sy, my);
+
+  const report = reports.find(r => r.name === name && r.sy === sy && r.my === my);
+  const pub = publishers.find(p => p.fullName === name);
+
+  document.getElementById("updateFSG").value = pub?.fsg || "";
+  document.getElementById("updatePriv2").value = pub?.privilege2 || "";
+
+  if (!report) {
+    document.getElementById("updateHours").value = "";
+    document.getElementById("updateStudies").value = "";
+    document.getElementById("updateShared").checked = false;
+    document.getElementById("auxPioneerCheckboxUpdate").checked = false;
+    document.getElementById("auxiQuestionUpdate").value = "";
+    document.getElementById("auxPioneerDivUpdate").classList.add("hidden");
+    document.getElementById("auxiQuestionDivUpdate").classList.add("hidden");
+    return;
+  }
+
+  document.getElementById("updateHours").value = report.hours || "";
+  document.getElementById("updateStudies").value = report.studies || "";
+  document.getElementById("updateShared").checked = report.shared || false;
+
+  // Auxiliary Pioneer fields
+  document.getElementById("auxPioneerCheckboxUpdate").checked = report.auxiliary || false;
+  document.getElementById("auxiQuestionUpdate").value = report.auxQuestion || "";
+
+validateUpdatePrivilegeLogic();
+}
+
+function updateReport() {
+  const name = document.getElementById("updatePublisher").value;
+  const sy = document.getElementById("updateYear").value;
+  const my = document.getElementById("updateMonthYear").value;
+
+  if (!name || !sy || !my) return alert("Please complete all selections.");
+
+  const index = reports.findIndex(r => r.name === name && r.sy === sy && r.my === my);
+  if (index < 0) return alert("No existing report found to update.");
+
+  if (!confirm("Are you sure you want to update this record?")) return;
+
+  reports[index] = {
+    name,
+    fsg: document.getElementById("updateFSG").value,
+    priv: document.getElementById("updatePriv2").value,
+    sy,
+    my,
+    hours: parseInt(document.getElementById("updateHours").value),
+    studies: parseInt(document.getElementById("updateStudies").value),
+    shared: document.getElementById("updateShared").checked,
+    auxPioneer: false // optional
+  };
+
+  alert("Report updated.");
+  clearUpdateForm();
+}
+
+function deleteReport() {
+  const name = document.getElementById("updatePublisher").value;
+  const sy = document.getElementById("updateYear").value;
+  const my = document.getElementById("updateMonthYear").value;
+
+  if (!name || !sy || !my) return alert("Please complete all selections.");
+
+  const index = reports.findIndex(r => r.name === name && r.sy === sy && r.my === my);
+  if (index < 0) return alert("No existing report found to delete.");
+
+  if (!confirm("Are you sure you want to delete this record?")) return;
+
+  // Delete the record
+  reports.splice(index, 1);
+
+  // Alert and clear form
+  alert("Report deleted.");
+  clearUpdateForm(); // ✅ CLEAR ALL FIELDS AFTER DELETE
+}
+
+function populateUpdateMonthYearOptions() {
+  const serviceYear = parseInt(document.getElementById("updateYear").value);
+  const select = document.getElementById("updateMonthYear");
+  select.innerHTML = '<option value="">-- Select --</option>';
+
+  if (!serviceYear) return;
+
+  const months = [
+    "September", "October", "November", "December",
+    "January", "February", "March", "April", "May", "June", "July", "August"
+  ];
+
+  for (let i = 0; i < months.length; i++) {
+    const year = i < 4 ? serviceYear - 1 : serviceYear;
+    const option = document.createElement("option");
+    option.value = `${months[i]} ${year}`;
+    option.textContent = `${months[i]} ${year}`;
+    select.appendChild(option);
+  }
+
+  // Optional: auto-select current previous month if found
+  const today = new Date();
+  const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1);
+  const defaultVal = `${prevMonth.toLocaleString('default', { month: 'long' })} ${prevMonth.getFullYear()}`;
+  const found = [...select.options].find(o => o.value === defaultVal);
+  if (found) select.value = defaultVal;
+
+  // Call handler to auto-load report data
+  handleUpdateLoad();
+}
+
+function updateHandleHoursChange() {
+  const val = parseInt(document.getElementById("updateHours").value);
+  const shared = document.getElementById("updateShared");
+  const aux = document.getElementById("auxPioneerCheckboxUpdate");
+  const priv = document.getElementById("updatePriv2").value;
+  const auxiAnswer = document.getElementById("auxiQuestionUpdate").value;
+
+  if (val && val > 0) {
+    if (["Regular Pioneer", "Special Pioneer", "Field Missionary"].includes(priv)) {
+      shared.checked = true;
+    } else if (priv === "Continuous Auxiliary Pioneer") {
+      shared.checked = true;
+      aux.checked = true;
+    } else if (priv === "Publisher/Auxi" && auxiAnswer === "Yes") {
+      shared.checked = true;
+      aux.checked = true;
+    }
+  } else {
+    shared.checked = false;
+    aux.checked = false;
+  }
+console.log("validateUpdatePrivilegeLogic called");
+console.log("updateHandleHoursChange called");
+
+}  
+
+function initReportSection() {
+  populatePublisherDropdown();
+  const yearSelect = document.getElementById("reportYear");
+  const monthSelect = document.getElementById("reportMonthYear");
+
+  yearSelect.innerHTML = "";
+  monthSelect.innerHTML = "";
+
+  const today = new Date();
+  const thisYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+
+  if (currentUser && currentUser.role === "user") {
+    const serviceYear = currentMonth >= 9 ? thisYear + 1 : thisYear;
+    const opt = document.createElement("option");
+    opt.value = serviceYear;
+    opt.text = serviceYear;
+    opt.selected = true;
+    yearSelect.appendChild(opt);
+    yearSelect.disabled = true;
+
+    let prevMonth = currentMonth - 1;
+    let prevYear = thisYear;
+    if (prevMonth < 0) {
+      prevMonth = 11;
+      prevYear--;
+    }
+
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const formattedMonth = `${monthNames[prevMonth]} ${prevYear}`;
+    const optMonth = document.createElement("option");
+    optMonth.value = formattedMonth;
+    optMonth.text = formattedMonth;
+    optMonth.selected = true;
+    monthSelect.appendChild(optMonth);
+    monthSelect.disabled = true;
+
+  } else if (currentUser && currentUser.role === "admin") {
+    const blankOpt = document.createElement("option");
+    blankOpt.value = "";
+    blankOpt.text = "-- Select --";
+    yearSelect.appendChild(blankOpt);
+
+    for (let y = 2015; y <= 2200; y++) {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.text = y;
+      yearSelect.appendChild(opt);
+    }
+    yearSelect.disabled = false;
+
+    monthSelect.innerHTML = '<option value="">-- Select --</option>';
+    monthSelect.disabled = false;
+
+    yearSelect.addEventListener("change", populateMonthYearOptions);
+  }
+}
+
+  function saveReport() {
+  const name = document.getElementById("reportPublisher").value;
+  const fsg = document.getElementById("reportFSG").value;
+  const priv = document.getElementById("reportPriv2").value;
+  const hours = parseInt(document.getElementById("reportHours").value);
+  const studies = parseInt(document.getElementById("reportStudies").value);
+  const shared = document.getElementById("reportShared").checked;
+  const auxPioneer = document.getElementById("auxPioneerCheckbox").checked;
+  const sy = document.getElementById("reportYear").value;
+  const my = document.getElementById("reportMonthYear").value;
+  const auxiAnswer = document.getElementById("auxiQuestion").value;
+
+  // ✅ Required fields validation
+  if (!name) return alert("Please select a publisher.");
+  if (!sy || !my) return alert("Please select service year and month.");
+
+  // ✅ ❗️ Check for duplicate report
+  const duplicate = reports.find(r => r.name === name && r.sy === sy && r.my === my);
+  if (duplicate) {
+    alert("A report already exists for this publisher and month.");
+    return;
+  }
+
+  // ✅ Validation rules based on privilege
+  if (["Regular Pioneer", "Special Pioneer", "Field Missionary", "Continuous Auxiliary Pioneer"].includes(priv)) {
+    if (!hours || hours < 1) return alert("Field Hours is required.");
+    if (!shared) return alert("'Shared in Ministry' must be checked.");
+  }
+
+  if (priv === "Publisher/Auxi") {
+    if (!auxiAnswer) return alert("Please answer: Is the Publisher an Auxiliary Pioneer This Month?");
+    if (auxiAnswer === "Yes") {
+      if (!hours || hours < 1) return alert("Field Hours is required for Auxiliary Pioneer this month.");
+      if (!shared) return alert("'Shared in Ministry' must be checked.");
+    }
+    if (auxiAnswer === "No") {
+      if (!shared) return alert("'Shared in Ministry' must be checked for standard Publisher.");
+    }
+  }
+
+  // ✅ Save the report
+  reports.push({ name, fsg, priv, sy, my, hours, studies, shared, auxPioneer });
+  currentReportIndex = reports.length - 1;
+  localStorage.setItem("reports", JSON.stringify(reports));
+  alert("Report saved.");
+  clearReportForm();
+  initReportSection();
+}
+
+  function handlePrivilegeLogic() {
+  const selected = document.getElementById("reportPublisher").value;
+  if (!selected) return;
+
+  const record = publishers.find(p => p.fullName === selected);
+  if (!record) return;
+
+  const priv = record.privilege2;
+  document.getElementById("reportFSG").value = record.fsg;
+  document.getElementById("reportPriv2").value = priv;
+
+  const hours = document.getElementById("reportHours");
+  const studies = document.getElementById("reportStudies");
+  const shared = document.getElementById("reportShared");
+  const auxBox = document.getElementById("auxPioneerCheckbox");
+
+  const auxDiv = document.getElementById("auxPioneerDiv");
+  const auxiDiv = document.getElementById("auxiQuestionDiv");
+
+  // Reset everything first
+  auxDiv.classList.add("hidden");
+  auxiDiv.classList.add("hidden");
+  auxBox.checked = false;
+  hours.disabled = true;
+  studies.disabled = true;
+  shared.disabled = true;
+  shared.checked = false;
+
+  // === Logic per Privilege2 ===
+  if (["Regular Pioneer", "Special Pioneer", "Field Missionary"].includes(priv)) {
+    auxDiv.classList.add("hidden");
+    auxiDiv.classList.add("hidden");
+
+    hours.disabled = false;
+    studies.disabled = false;
+    shared.disabled = true;
+
+  } else if (priv === "Continuous Auxiliary Pioneer") {
+    auxDiv.classList.remove("hidden");
+    auxiDiv.classList.add("hidden");
+
+    auxBox.disabled = true;
+    hours.disabled = false;
+    studies.disabled = false;
+    shared.disabled = true;
+
+  } else if (priv === "Publisher/Auxi") {
+    auxiDiv.classList.remove("hidden"); // Show dropdown
+    handleAuxiOption(); // Handle based on Yes/No
+  }
+}
+
+  function handleAuxiOption() {
+  const opt = document.getElementById("auxiQuestion").value;
+  const shared = document.getElementById("reportShared");
+  const hours = document.getElementById("reportHours");
+  const studies = document.getElementById("reportStudies");
+  const auxDiv = document.getElementById("auxPioneerDiv");
+  const auxBox = document.getElementById("auxPioneerCheckbox");
+
+  // Reset all
+  shared.checked = false;
+  auxBox.checked = false;
+
+  if (opt === "Yes") {
+    hours.disabled = false;
+    studies.disabled = false;
+    shared.disabled = true;
+
+    auxDiv.classList.remove("hidden");
+    auxBox.disabled = true;
+
+  } else if (opt === "No") {
+    hours.disabled = true;
+    hours.value = ""; // clear value
+    studies.disabled = false;
+    shared.disabled = false; // allow manual check
+
+    auxDiv.classList.add("hidden");
+    auxBox.checked = false;
+
+  } else {
+    // Reset all if not selected
+    hours.disabled = true;
+    studies.disabled = true;
+    shared.disabled = true;
+    shared.checked = false;
+    auxDiv.classList.add("hidden");
+    auxBox.checked = false;
+  }
+}
+
+  function handleHoursChange() {
+  const val = parseInt(document.getElementById("reportHours").value);
+  if (val && val > 0) {
+    document.getElementById("reportShared").checked = true;
+
+    const priv = document.getElementById("reportPriv2").value;
+    if (["Continuous Auxiliary Pioneer", "Publisher/Auxi"].includes(priv)) {
+      document.getElementById("auxPioneerCheckbox").checked = true;
+    }
+  }
+}
+
+  function clearReportForm(keepPublisher = false) {
+  if (!keepPublisher) {
+    document.getElementById("reportPublisher").value = "";
+    document.getElementById("searchReportPublisher").value = ""; // ✅ Clear Search Publisher
+    document.getElementById("reportSuggestions").innerHTML = "";
+    document.getElementById("reportSuggestions").style.display = "none";
+  }
+
+  document.getElementById("reportFSG").value = "";
+  document.getElementById("reportPriv2").value = "";
+  document.getElementById("reportYear").value = "";
+  document.getElementById("reportMonthYear").value = "";
+  document.getElementById("reportHours").value = "";
+  document.getElementById("reportStudies").value = "";
+  document.getElementById("reportShared").checked = false;
+  document.getElementById("auxPioneerCheckbox").checked = false;
+  document.getElementById("auxiQuestion").value = "";
+
+  // Hide sections
+  document.getElementById("auxPioneerDiv").classList.add("hidden");
+  document.getElementById("auxiQuestionDiv").classList.add("hidden");
+
+  // Reset enable/disable
+  document.getElementById("reportHours").disabled = true;
+  document.getElementById("reportStudies").disabled = true;
+  document.getElementById("reportShared").disabled = true;
+  document.getElementById("auxPioneerCheckbox").disabled = false;
+}
+
+  function prevReport() {
+    if (currentReportIndex > 0) {
+      currentReportIndex--;
+      loadReport();
+    }
+  }
+
+  function nextReport() {
+    if (currentReportIndex < reports.length - 1) {
+      currentReportIndex++;
+      loadReport();
+    }
+  }
+
+  function loadReport() {
+    const r = reports[currentReportIndex];
+    if (!r) return;
+    document.getElementById("reportPublisher").value = r.name;
+    document.getElementById("reportFSG").value = r.fsg;
+    document.getElementById("reportPriv2").value = r.priv;
+    document.getElementById("reportYear").value = r.sy;
+    document.getElementById("reportMonthYear").value = r.my;
+    document.getElementById("reportHours").value = r.hours;
+    document.getElementById("reportStudies").value = r.studies;
+    document.getElementById("reportShared").checked = r.shared;
+    document.getElementById("auxPioneerCheckbox").checked = r.auxPioneer;
+  }
+
+  function editReport() {
+  if (currentReportIndex < 0) return alert("No report selected.");
+
+  const confirmed = confirm("Are You Sure You Want to Update This Record?");
+  if (!confirmed) return;
+
+  reports[currentReportIndex] = {
+    name: document.getElementById("reportPublisher").value,
+    fsg: document.getElementById("reportFSG").value,
+    priv: document.getElementById("reportPriv2").value,
+    sy: document.getElementById("reportYear").value,
+    my: document.getElementById("reportMonthYear").value,
+    hours: parseInt(document.getElementById("reportHours").value),
+    studies: parseInt(document.getElementById("reportStudies").value),
+    shared: document.getElementById("reportShared").checked,
+    auxPioneer: document.getElementById("auxPioneerCheckbox").checked
+  };
+
+  alert("Report updated.");
+  clearReportForm();
+}
+function deleteReport() {
+  const name = document.getElementById("updatePublisher").value;
+  const sy = document.getElementById("updateYear").value;
+  const my = document.getElementById("updateMonthYear").value;
+
+  if (!name || !sy || !my) return alert("Please complete all selections.");
+
+  const index = reports.findIndex(r => r.name === name && r.sy === sy && r.my === my);
+  if (index < 0) return alert("No existing report found to delete.");
+
+  if (!confirm("Are you sure you want to delete this record?")) return;
+
+  // Delete the record
+  reports.splice(index, 1);
+
+  // Alert and clear form
+  alert("Report deleted.");
+  clearUpdateForm(); // ✅ CLEAR ALL FIELDS AFTER DELETE
+}
+function searchPublisher(inputElement) {
+  const inputVal = inputElement.value.toLowerCase();
+
+  const dropdownId = (inputElement.id === 'searchReportPublisher') ? 'reportPublisher' : 'updatePublisher';
+  const dropdown = document.getElementById(dropdownId);
+  // Proceed with filtering options
+}
+
+</script>
+<script>
+let userList = [
+  { username: 'admin', password: 'admin123', role: 'admin' },
+  { username: 'user1', password: 'user123', role: 'user' }
+];
+let currentUserIndex = -1;
+
+function addUser() {
+  const user = getUserFromForm();
+  if (!user.username || !user.password || !user.role) {
+    alert("Please fill in all fields.");
+    return;
+  }
+
+  // Prevent duplicate usernames
+  if (userList.some(u => u.username === user.username)) {
+    alert("Username already exists.");
+    return;
+  }
+
+  userList.push(user);
+  currentUserIndex = userList.length - 1;
+  alert("User added.");
+  clearUserForm();
+}
+
+function updateUser() {
+  if (currentUserIndex < 0 || currentUserIndex >= userList.length) {
+    alert("No user selected to update.");
+    return;
+  }
+
+  if (!confirm("Are you sure you want to update this user?")) return;
+
+  const user = getUserFromForm();
+  if (!user.username || !user.password || !user.role) {
+    alert("Please fill in all fields.");
+    return;
+  }
+
+  userList[currentUserIndex] = user;
+  alert("User updated.");
+  clearUserForm();
+}
+
+function deleteUser() {
+  if (currentUserIndex < 0 || currentUserIndex >= userList.length) {
+    alert("No user selected to delete.");
+    return;
+  }
+
+  if (!confirm("Are you sure you want to delete this user?")) return;
+
+  userList.splice(currentUserIndex, 1);
+  alert("User deleted.");
+
+  if (userList.length > 0) {
+    currentUserIndex = Math.min(currentUserIndex, userList.length - 1);
+    loadUser(userList[currentUserIndex]);
+  } else {
+    currentUserIndex = -1;
+    clearUserForm();
+  }
+}
+
+function prevUser() {
+  if (currentUserIndex > 0) {
+    currentUserIndex--;
+    loadUser(userList[currentUserIndex]);
+  } else {
+    alert("This is the first record.");
+  }
+}
+
+function nextUser() {
+  if (currentUserIndex < userList.length - 1) {
+    currentUserIndex++;
+    loadUser(userList[currentUserIndex]);
+  } else {
+    alert("This is the last record.");
+  }
+}
+
+function loadUser(user) {
+  document.getElementById("userUsername").value = user.username;
+  document.getElementById("userPassword").value = user.password;
+  document.getElementById("userRole").value = user.role;
+}
+
+function getUserFromForm() {
+  return {
+    username: document.getElementById("userUsername").value.trim(),
+    password: document.getElementById("userPassword").value.trim(),
+    role: document.getElementById("userRole").value
+  };
+}
+
+function clearUserForm() {
+  document.getElementById("userUsername").value = "";
+  document.getElementById("userPassword").value = "";
+  document.getElementById("userRole").value = "";
+}
+function toggleUserPassword() {
+  const pwField = document.getElementById("userPassword");
+  pwField.type = pwField.type === "password" ? "text" : "password";
+}
+function accessManageUsers() {
+  const secret = prompt("Enter Admin Password:");
+  if (secret === "Alatirisgirl040817") {
+    showSection('userSection');
+  } else if (secret !== null) {
+    alert("Incorrect password.");
+  }
+}
+
+</script>
+<script>
+function exportToExcel() {
+  if (reports.length === 0) {
+    alert("No reports to export.");
+    return;
+  }
+
+  // 🔍 Create a map to keep only the latest report per Publisher + Month + Year
+  const latestMap = new Map();
+  reports.forEach(r => {
+    const key = `${r.name}-${r.sy}-${r.my}`;
+    latestMap.set(key, r); // overwrites duplicates, keeps latest
+  });
+
+  const uniqueReports = [...latestMap.values()];
+
+  let table = `<table border="1">
+    <tr>
+      <th>Publisher</th>
+      <th>Field Service Group</th>
+      <th>Privilege2</th>
+      <th>Service Year</th>
+      <th>Month and Year</th>
+      <th>Field Hours</th>
+      <th>Bible Studies</th>
+      <th>Shared in Ministry</th>
+      <th>Auxiliary Pioneer</th>
+    </tr>`;
+
+  uniqueReports.forEach(r => {
+    table += `<tr>
+      <td>${r.name}</td>
+      <td>${r.fsg}</td>
+      <td>${r.priv}</td>
+      <td>${r.sy}</td>
+      <td>${r.my}</td>
+      <td>${r.hours}</td>
+      <td>${r.studies}</td>
+      <td>${r.shared ? "Yes" : "No"}</td>
+      <td>${r.auxPioneer ? "Yes" : "No"}</td>
+    </tr>`;
+  });
+
+  table += `</table>`;
+
+  const blob = new Blob([table], { type: "application/vnd.ms-excel" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "Latest_Unique_Reports.xls";
+  link.click();
+}
+
+function savePublishersToLocalStorage() {
+  localStorage.setItem("publishers", JSON.stringify(publishers));
+}
+
+function loadPublishersFromLocalStorage() {
+  console.log("Loading publishers from local storage...");
+  const saved = localStorage.getItem("publishers");
+  console.log("Saved data:", saved);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      console.log("Parsed data:", parsed);
+      publishers.length = 0; // clear the array
+      publishers.push(...parsed);
+      console.log("Publishers array after load:", publishers);
+      if (publishers.length > 0) {
+        currentPubIndex = 0;
+        loadPublisher(publishers[0]);
+      }
+    } catch(e) {
+      console.error("Error parsing JSON:", e);
+    }
+  }
+}
+
+window.onload = () => {
+  loadPublishersFromLocalStorage();
+  console.log("On load - publishers array:", publishers);  // <-- Dito mo ilalagay
+  loadReportsFromLocalStorage();
+  savePublishersToLocalStorage();
+  refreshAllPublisherDropdowns(); // Idagdag dito
+
+  // ✅ Load approvalRequests from localStorage
+  const savedRequests = localStorage.getItem("approvalRequests");
+  if (savedRequests) {
+    approvalRequests = JSON.parse(savedRequests);
+  }
+// ✅ Auto initialize Add Report at Update Report
+  initReportSection();
+  initUpdateSection();
+  initSubmitRequestSection();  // para sa Submit Request din
+ }
+
+</script>
+<script>
+function loadReportsFromLocalStorage() {
+  const saved = localStorage.getItem("reports");
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    reports.push(...parsed);
+  }
+}
+function initSubmitRequest() {
+  const dropdown = document.getElementById("requestPublisher");
+  dropdown.innerHTML = '<option value="">-- Select --</option>';
+
+  publishers.forEach(p => {
+    const fullName = `${p.lastName}, ${p.firstName}`;
+    const opt = document.createElement("option");
+    opt.value = fullName;
+    opt.textContent = fullName;
+    dropdown.appendChild(opt);
+  });
+
+  const yearSel = document.getElementById("requestYear");
+  yearSel.innerHTML = '<option value="">-- Select --</option>';
+  for (let y = 2015; y <= 2200; y++) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y;
+    yearSel.appendChild(opt);
+  }
+
+  document.getElementById("requestSearch").value = "";
+  document.getElementById("requestPublisher").value = "";
+  document.getElementById("requestYear").value = "";
+  document.getElementById("requestMonth").value = "";
+
+  document.getElementById("requestHours").value = "";
+  document.getElementById("requestStudies").value = "";
+  document.getElementById("requestShared").checked = false;
+  document.getElementById("requestAuxPioneer").checked = false;
+  document.getElementById("requestAuxiQuestion").value = "";
+
+  document.getElementById("requestEditFields").classList.add("hidden");
+}
+
+function filterRequestPublishers() {
+  const keyword = document.getElementById("requestSearch").value.toLowerCase();
+  const dropdown = document.getElementById("requestPublisher");
+
+  dropdown.innerHTML = '<option value="">-- Select --</option>';
+
+  // List only publishers who have reports
+  const matchedNames = [...new Set(reports.map(r => r.name))]
+    .filter(name => name.toLowerCase().includes(keyword));
+
+  matchedNames.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    dropdown.appendChild(opt);
+  });
+
+  // ✅ Auto-select first matching result if only one
+  if (matchedNames.length === 1) {
+    dropdown.value = matchedNames[0];
+    checkAndPrefillRequestData(); // also try to fetch report data
+  }
+}
+
+function populateRequestMonthOptions() {
+  const serviceYear = parseInt(document.getElementById("requestYear").value);
+  const select = document.getElementById("requestMonth");
+  select.innerHTML = '<option value="">-- Select --</option>';
+
+  if (!serviceYear) return;
+
+  const months = [
+    "September", "October", "November", "December",
+    "January", "February", "March", "April", "May", "June", "July", "August"
+  ];
+
+  for (let i = 0; i < months.length; i++) {
+    const year = i < 4 ? serviceYear - 1 : serviceYear;
+    const option = document.createElement("option");
+    option.value = `${months[i]} ${year}`;
+    option.textContent = `${months[i]} ${year}`;
+    select.appendChild(option);
+  }
+
+  // Show detail fields when both fields are selected
+  select.onchange = () => {
+    const pub = document.getElementById("requestPublisher").value;
+    const sy = document.getElementById("requestYear").value;
+    const my = document.getElementById("requestMonth").value;
+    if (pub && sy && my) {
+      document.getElementById("requestDetails").classList.remove("hidden");
+    } else {
+      document.getElementById("requestDetails").classList.add("hidden");
+    }
+  };
+}
+
+function submitApprovalRequest() {
+  const name = document.getElementById("requestPublisher").value;
+  const sy = document.getElementById("requestYear").value;
+  const my = document.getElementById("requestMonth").value;
+  const hours = parseInt(document.getElementById("requestHours").value);
+  const studies = parseInt(document.getElementById("requestStudies").value);
+  const shared = document.getElementById("requestShared").checked;
+  const auxPioneer = document.getElementById("requestAuxPioneer").checked;
+
+  if (!name || !sy || !my) return alert("Please complete all required fields.");
+
+  approvalRequests.push({ name, sy, my, hours, studies, shared, auxPioneer, status: "pending" });
+  localStorage.setItem("approvalRequests", JSON.stringify(approvalRequests));
+
+  alert("Request Submitted. Please wait for the admin approval to take effect the changes.");
+
+  // Clear fields
+  initSubmitRequest();
+  document.getElementById("requestDetails").classList.add("hidden");
+}
+
+function updateApprovedReport(index) {
+  const r = approvalRequests.filter(r => r.status === "approved")[index];
+  if (!r) return;
+
+  const hours = parseInt(document.getElementById(`followupHours${index}`).value);
+  const studies = parseInt(document.getElementById(`followupStudies${index}`).value);
+  const shared = document.getElementById(`followupShared${index}`).checked;
+  const aux = document.getElementById(`followupAux${index}`).checked;
+
+  const i = reports.findIndex(rep => rep.name === r.name && rep.sy === r.sy && rep.my === r.my);
+
+  if (i >= 0) {
+    reports[i] = { ...reports[i], hours, studies, shared, auxPioneer: aux };
+  } else {
+    reports.push({ name: r.name, sy: r.sy, my: r.my, fsg: "", priv: "", hours, studies, shared, auxPioneer: aux });
+  }
+
+  // Remove request after update
+  approvalRequests = approvalRequests.filter(req => !(req.name === r.name && req.sy === r.sy && req.my === r.my));
+  localStorage.setItem("reports", JSON.stringify(reports));
+  localStorage.setItem("approvalRequests", JSON.stringify(approvalRequests));
+
+  alert("Report updated.");
+  loadApprovalFollowUp();
+}
+function populateRequestYearOptions() {
+  const select = document.getElementById("requestYear");
+  select.innerHTML = '<option value="">-- Select --</option>';
+  for (let y = 2015; y <= 2200; y++) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y;
+    select.appendChild(opt);
+  }
+}
+
+function populateRequestMonthYearOptions() {
+  const serviceYear = parseInt(document.getElementById("requestYear").value);
+  const select = document.getElementById("requestMonth");
+  select.innerHTML = '<option value="">-- Select --</option>';
+  if (!serviceYear) return;
+
+  const months = [
+    "September", "October", "November", "December",
+    "January", "February", "March", "April", "May", "June", "July", "August"
+  ];
+
+  for (let i = 0; i < months.length; i++) {
+    const year = i < 4 ? serviceYear - 1 : serviceYear;
+    const opt = document.createElement("option");
+    opt.value = `${months[i]} ${year}`;
+    opt.textContent = `${months[i]} ${year}`;
+    select.appendChild(opt);
+  }
+select.onchange = () => {
+  checkAndPrefillRequestData(); // ✅ Add this!
+};
+
+}
+
+function initSubmitRequestSection() {
+  populateRequestPublisherDropdown(); // ✅ populate request publisher dropdown
+  populateRequestYearOptions();       // ✅ fill service year options
+
+  document.getElementById("requestSearch").value = "";
+  document.getElementById("requestPublisher").value = "";
+  document.getElementById("requestYear").value = "";
+  document.getElementById("requestMonth").innerHTML = '<option value="">-- Select --</option>';
+  
+  document.getElementById("requestHours").value = "";
+  document.getElementById("requestStudies").value = "";
+  document.getElementById("requestShared").checked = false;
+  document.getElementById("requestAuxPioneer").checked = false;
+  document.getElementById("requestAuxiQuestion").value = "";
+
+  document.getElementById("requestEditFields").classList.add("hidden");
+}
+
+function filterRequestPublisherList() {
+  const search = document.getElementById("requestSearch").value.toLowerCase();
+  const select = document.getElementById("requestPublisher");
+  select.innerHTML = '<option value="">-- Select --</option>';
+  publishers
+    .filter(p => p.fullName.toLowerCase().includes(search))
+    .forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.fullName;
+      opt.textContent = p.fullName;
+      select.appendChild(opt);
+    });
+}
+function checkAndPrefillRequestData() {
+  const name = document.getElementById("requestPublisher").value;
+  const sy = document.getElementById("requestYear").value;
+  const my = document.getElementById("requestMonth").value;
+
+  if (!name || !sy || !my) {
+    document.getElementById("requestEditFields").classList.add("hidden");
+    return;
+    applyRequestValidation(); // Add this if missing  
+}
+
+  // Hanapin ang report
+  const existing = reports.find(r => r.name === name && r.sy === sy && r.my === my);
+
+  const hours = document.getElementById("requestHours");
+  const studies = document.getElementById("requestStudies");
+  const shared = document.getElementById("requestShared");
+  const aux = document.getElementById("requestAuxPioneer");
+
+  if (existing) {
+    hours.value = existing.hours || "";
+    studies.value = existing.studies || "";
+    shared.checked = !!existing.shared;
+    aux.checked = !!existing.auxPioneer;
+  } else {
+    hours.value = "";
+    studies.value = "";
+    shared.checked = false;
+    aux.checked = false;
+  }
+
+  document.getElementById("requestEditFields").classList.remove("hidden");
+  applyRequestValidation();
+document.getElementById("requestAuxiQuestion").value = ""; // reset answer
+
+}
+function populateRequestPublisherDropdown() {
+  const dropdown = document.getElementById("requestPublisher");
+  dropdown.innerHTML = '<option value="">-- Select --</option>';
+
+  // Get unique publisher names that have existing reports
+  const uniqueNames = [...new Set(reports.map(r => r.name))];
+
+  uniqueNames.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    dropdown.appendChild(opt);
+  });
+}
+
+</script>
+<script>
+function handleRequestHoursChange() {
+  const val = parseInt(document.getElementById("requestHours").value);
+  const shared = document.getElementById("requestShared");
+  const aux = document.getElementById("requestAuxPioneer");
+  const priv = getRequestPrivilege();
+  const auxiAnswer = document.getElementById("requestAuxiQuestion")?.value;
+
+  // Always uncheck both first
+  shared.checked = false;
+  aux.checked = false;
+
+  if (val && val > 0) {
+    // ✅ For Regular / Special Pioneer / Field Missionary
+    if (["Regular Pioneer", "Special Pioneer", "Field Missionary"].includes(priv)) {
+      shared.checked = true;
+    }
+
+    // ✅ For Continuous Auxiliary Pioneer
+    else if (priv === "Continuous Auxiliary Pioneer") {
+      shared.checked = true;
+      aux.checked = true;
+    }
+
+    // ✅ For Publisher/Auxi and Yes answer
+    else if (priv === "Publisher/Auxi" && auxiAnswer === "Yes") {
+      shared.checked = true;
+      aux.checked = true;
+    }
+  }
+}
+
+function getRequestPrivilege() {
+  const name = document.getElementById("requestPublisher").value;
+  const pub = publishers.find(p => p.fullName === name);
+  return pub?.privilege2 || "";
+}
+
+function applyRequestValidation() {
+  const priv = getRequestPrivilege();
+
+  const hours = document.getElementById("requestHours");
+  const studies = document.getElementById("requestStudies");
+  const shared = document.getElementById("requestShared");
+  const aux = document.getElementById("requestAuxPioneer");
+  const auxDiv = document.getElementById("requestAuxPioneerDiv");
+  const auxiDiv = document.getElementById("requestAuxiQuestionDiv");
+  const auxiSel = document.getElementById("requestAuxiQuestion");
+
+  // Reset all
+  hours.disabled = true;
+  studies.disabled = true;
+  shared.disabled = true;
+  aux.checked = false;
+  aux.disabled = false;
+  auxDiv.style.display = "none";
+  auxiDiv.classList.add("hidden");
+
+  if (["Regular Pioneer", "Special Pioneer", "Field Missionary"].includes(priv)) {
+    hours.disabled = false;
+    studies.disabled = false;
+    shared.disabled = true;
+    auxDiv.style.display = "none";
+  } else if (priv === "Continuous Auxiliary Pioneer") {
+    hours.disabled = false;
+    studies.disabled = false;
+    shared.disabled = true;
+    aux.disabled = true;    // ✅ Disable
+    auxDiv.style.display = "block";
+  } else if (priv === "Publisher/Auxi") {
+    auxiDiv.classList.remove("hidden");
+    const answer = auxiSel.value;
+    if (answer === "Yes") {
+      hours.disabled = false;
+      studies.disabled = false;
+      shared.disabled = true;
+      aux.disabled = true;
+      auxDiv.style.display = "block";
+    } else if (answer === "No") {
+      hours.disabled = true;
+      hours.value = ""; // ✅ Clear hours when switching to No
+      studies.disabled = false;
+      shared.disabled = false;
+      auxDiv.style.display = "none";
+      aux.checked = false;
+    }
+  }
+handleRequestHoursChange();
+}
+function filterRequestSuggestions() {
+  const input = document.getElementById("requestSearch");
+  const keyword = input.value.toLowerCase();
+  const suggestionBox = document.getElementById("requestSuggestions");
+  suggestionBox.innerHTML = "";
+
+  if (!keyword) {
+    suggestionBox.style.display = "none";
+    return;
+  }
+
+  const uniqueNames = [...new Set(reports.map(r => r.name))];
+  const matches = uniqueNames.filter(name => name.toLowerCase().includes(keyword));
+
+  if (matches.length === 0) {
+    suggestionBox.style.display = "none";
+    return;
+  }
+
+  matches.forEach(name => {
+    const div = document.createElement("div");
+    div.textContent = name;
+    div.onclick = () => {
+      document.getElementById("requestSearch").value = name;
+      document.getElementById("requestPublisher").value = name;
+      suggestionBox.innerHTML = "";
+      suggestionBox.style.display = "none";
+      checkAndPrefillRequestData(); // make sure this exists
+    };
+    suggestionBox.appendChild(div);
+  });
+
+  suggestionBox.style.display = "block";
+}
+function syncRequestSearchToDropdown() {
+  const searchVal = document.getElementById("requestSearch").value.trim();
+  const dropdown = document.getElementById("requestPublisher");
+  for (let i = 0; i < dropdown.options.length; i++) {
+    if (dropdown.options[i].value.toLowerCase() === searchVal.toLowerCase()) {
+      dropdown.selectedIndex = i;
+      return;
+    }
+  }
+  dropdown.selectedIndex = 0; // fallback to "-- Select --" if not matched
+}
+function loadAdminApprovalList() {
+  const container = document.getElementById("adminApprovalList");
+  container.innerHTML = "";
+
+  const pending = approvalRequests.filter(r => r.status === "pending");
+
+  if (pending.length === 0) {
+    container.innerHTML = "<p>No pending requests.</p>";
+    return;
+  }
+
+  pending.forEach((r, i) => {
+    const div = document.createElement("div");
+    div.style.border = "1px solid #ccc";
+    div.style.padding = "10px";
+    div.style.marginBottom = "10px";
+
+    div.innerHTML = `
+      <p><strong>Publisher:</strong> ${r.name}</p>
+      <p><strong>Service Year:</strong> ${r.sy}</p>
+      <p><strong>Month:</strong> ${r.my}</p>
+      <p>Field Hours: ${r.hours}</p>
+      <p>Bible Studies: ${r.studies}</p>
+      <p>Shared in Ministry: ${r.shared ? "Yes" : "No"}</p>
+      <p>Auxiliary Pioneer: ${r.auxPioneer ? "Yes" : "No"}</p>
+      <button onclick="approveRequest(${i})">Approve</button>
+      <button onclick="rejectRequest(${i})">Reject</button>
+    `;
+
+    container.appendChild(div);
+  });
+}
+function approveRequest(index) {
+  const request = approvalRequests.filter(r => r.status === "pending")[index];
+  if (!request) return;
+
+  // Check if there's already a report for this
+  const i = reports.findIndex(r => r.name === request.name && r.sy === request.sy && r.my === request.my);
+
+  if (i >= 0) {
+    // Update existing
+    reports[i].hours = request.hours;
+    reports[i].studies = request.studies;
+    reports[i].shared = request.shared;
+    reports[i].auxPioneer = request.auxPioneer;
+  } else {
+    // Create new
+    reports.push({
+      name: request.name,
+      fsg: "",
+      priv: "",
+      sy: request.sy,
+      my: request.my,
+      hours: request.hours,
+      studies: request.studies,
+      shared: request.shared,
+      auxPioneer: request.auxPioneer
+    });
+  }
+
+  request.status = "approved";
+  localStorage.setItem("reports", JSON.stringify(reports));
+  localStorage.setItem("approvalRequests", JSON.stringify(approvalRequests));
+  alert("Request approved.");
+  loadAdminApprovalList();
+}
+
+function rejectRequest(index) {
+  const request = approvalRequests.filter(r => r.status === "pending")[index];
+  if (!request) return;
+
+  const confirmed = confirm("Are you sure you want to reject this request?");
+  if (!confirmed) return;
+
+  const originalIndex = approvalRequests.findIndex(r =>
+    r.name === request.name && r.sy === request.sy && r.my === request.my && r.status === "pending"
+  );
+
+  if (originalIndex >= 0) {
+    approvalRequests.splice(originalIndex, 1);
+    localStorage.setItem("approvalRequests", JSON.stringify(approvalRequests));
+    alert("Request rejected.");
+    loadAdminApprovalList();
+  }
+}
+function refreshAllPublisherDropdowns() {
+  // Refresh Add Report
+  populatePublisherDropdown();
+
+  // Refresh Submit Request
+  populateRequestPublisherDropdown();
+}
+function searchReportPublisher() {
+  searchPublisher('searchReportPublisher');
+}
+function searchUpdatePublisher() {
+  searchPublisher('searchUpdatePublisher');
+}
+
+function searchPublisherForReport() {
+  searchPublisher('searchReportPublisher');
+}
+function searchPublisher(id) {
+  const inputEl = document.getElementById(id);
+  if (!inputEl) {
+    console.error("Element not found: " + id);
+    return;
+  }
+  const inputVal = inputEl.value.toLowerCase();
+
+  // Determine dropdown ID
+  const dropdownId = (id === 'searchReportPublisher') ? 'reportPublisher' : 'updatePublisher';
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) {
+    console.error("Dropdown element not found: " + dropdownId);
+    return;
+  }
+
+  // Clear current options
+  dropdown.innerHTML = '<option value="">-- Select --</option>';
+
+  // Filter publishers based on input
+  const filtered = publishers.filter(p => p.fullName.toLowerCase().includes(inputVal));
+
+  // Populate dropdown options
+  filtered.forEach(p => {
+    const option = document.createElement("option");
+    option.value = p.fullName;
+    option.textContent = p.fullName;
+    dropdown.appendChild(option);
+  });
+
+  // Auto select if only 1 match
+  if (filtered.length === 1) {
+  dropdown.value = filtered[0].fullName;
+
+  // ✅ CLEAR ALL REPORT FIELDS when autoselected
+  if (dropdownId === 'reportPublisher') {
+    clearReportForm(true);         // clear but keep selected publisher
+    initReportSection();           // regenerate Service Year/Month
+    handlePrivilegeLogic();        // apply field rules
+  }
+}
+
+</script>
+<script>
+function filterReportSuggestions() {
+  const input = document.getElementById("searchReportPublisher");
+  const keyword = input.value.toLowerCase();
+  const suggestionBox = document.getElementById("reportSuggestions");
+  suggestionBox.innerHTML = "";
+
+  if (!keyword) {
+    suggestionBox.style.display = "none";
+    return;
+  }
+
+  const matches = publishers.filter(p =>
+    (`${p.lastName}, ${p.firstName}`).toLowerCase().includes(keyword)
+  );
+
+  if (matches.length === 0) {
+    suggestionBox.style.display = "none";
+    return;
+  }
+
+  matches.forEach(p => {
+    const fullName = `${p.lastName}, ${p.firstName}`;
+    const div = document.createElement("div");
+    div.textContent = fullName;
+
+    div.onclick = () => {
+      // 1. Clear only data fields, not Service Year & Month
+      clearReportDataFields();
+
+      // 2. Set the Search Publisher input
+      input.value = fullName;
+
+      // 3. Ensure dropdown is populated
+      initReportSection();
+
+      // 4. Set the Publisher dropdown selection
+      const dropdown = document.getElementById("reportPublisher");
+
+      // Try direct match by value
+      dropdown.value = fullName;
+
+      // Fallback: match by text if needed
+      if (dropdown.value !== fullName) {
+        for (let i = 0; i < dropdown.options.length; i++) {
+          if (dropdown.options[i].text.trim() === fullName) {
+            dropdown.selectedIndex = i;
+            break;
+          }
+        }
+      }
+
+      // 5. Apply privilege logic
+      handlePrivilegeLogic();
+
+      // 6. Hide suggestions
+      suggestionBox.innerHTML = "";
+      suggestionBox.style.display = "none";
+    };
+
+    suggestionBox.appendChild(div);
+  });
+
+  suggestionBox.style.display = "block";
+}
+
+</script>
+<script>
+function filterUpdateSuggestions() {
+  const input = document.getElementById("searchUpdatePublisher");
+  const keyword = input.value.toLowerCase();
+  const suggestionBox = document.getElementById("searchResultsUpdate");
+  suggestionBox.innerHTML = "";
+
+  if (!keyword) {
+    suggestionBox.style.display = "none";
+    return;
+  }
+
+  const matches = publishers.filter(p =>
+    (`${p.lastName}, ${p.firstName}`).toLowerCase().includes(keyword)
+  );
+
+  if (matches.length === 0) {
+    suggestionBox.style.display = "none";
+    return;
+  }
+
+  matches.forEach(p => {
+    const fullName = `${p.lastName}, ${p.firstName}`;
+    const div = document.createElement("div");
+    div.textContent = fullName;
+
+    div.onclick = () => {
+      // 1. Set Search input
+      input.value = fullName;
+
+      // 2. Populate dropdown options
+      initUpdateSection(); // ✅ make sure this exists
+
+      // 3. Set dropdown selection
+      const dropdown = document.getElementById("updatePublisher");
+      dropdown.value = fullName;
+
+      if (dropdown.value !== fullName) {
+        for (let i = 0; i < dropdown.options.length; i++) {
+          if (dropdown.options[i].text.trim() === fullName) {
+            dropdown.selectedIndex = i;
+            break;
+          }
+        }
+      }
+
+      // 4. Load report data
+      const year = document.getElementById("updateYear").value;
+      const month = document.getElementById("updateMonthYear").value;
+      if (year && month) {
+        handleUpdateLoad();
+      } else {
+        clearUpdateForm(true);
+        validateUpdatePrivilegeLogic(); // fallback if no year/month
+      }
+
+      // 5. Hide suggestion box
+      suggestionBox.innerHTML = "";
+      suggestionBox.style.display = "none";
+    };
+
+    suggestionBox.appendChild(div);
+  });
+
+  suggestionBox.style.display = "block";
+}
+
+function setDefaultReportDate() {
+  const now = new Date();
+
+  // Compute Service Year
+  let serviceYear;
+  if (now.getMonth() >= 9) { // October (9), November (10), December (11)
+    serviceYear = now.getFullYear() + 1;
+  } else {
+    serviceYear = now.getFullYear();
+  }
+  document.getElementById("reportYear").value = serviceYear;
+
+  // Compute Previous Month and Year
+  const previousMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const prevMonth = monthNames[previousMonthDate.getMonth()];
+  const prevYear = previousMonthDate.getFullYear();
+
+  document.getElementById("reportMonth").value = prevMonth;
+  document.getElementById("reportMonthYear").value = prevYear;
+}
+function clearReportDataFields() {
+  document.getElementById("reportHours").value = "";
+  document.getElementById("reportStudies").value = "";
+  document.getElementById("reportShared").checked = false;
+  document.getElementById("auxPioneerCheckbox").checked = false;
+  document.getElementById("auxiQuestion").value = "";
+
+  // Hide sections
+  document.getElementById("auxPioneerDiv").classList.add("hidden");
+  document.getElementById("auxiQuestionDiv").classList.add("hidden");
+
+  // Reset enable/disable for data fields
+  document.getElementById("reportHours").disabled = true;
+  document.getElementById("reportStudies").disabled = true;
+  document.getElementById("reportShared").disabled = true;
+  document.getElementById("auxPioneerCheckbox").disabled = false;
+}
+function loadReportData(publisherFullName, serviceYear, monthYear) {
+  const report = reports.find(r =>
+    r.publisher === publisherFullName &&
+    r.serviceYear === serviceYear &&
+    r.monthYear === monthYear
+  );
+
+  if (report) {
+    document.getElementById("reportHours").value = report.hours || "";
+    document.getElementById("reportStudies").value = report.studies || "";
+    document.getElementById("reportShared").checked = report.shared || false;
+    document.getElementById("auxPioneerCheckbox").checked = report.auxiliary || false;
+    document.getElementById("auxiQuestion").value = report.auxQuestion || "";
+
+    if (report.auxiliary) {
+      document.getElementById("auxPioneerDiv").classList.remove("hidden");
+      document.getElementById("auxiQuestionDiv").classList.remove("hidden");
+    } else {
+      document.getElementById("auxPioneerDiv").classList.add("hidden");
+      document.getElementById("auxiQuestionDiv").classList.add("hidden");
+    }
+  } else {
+    clearReportDataFields();
+  }
+}
+function initUpdateReportSection() {
+  const dropdown = document.getElementById("updatePublisher");
+  dropdown.innerHTML = '<option value="">-- Select --</option>';
+
+  publishers.forEach(p => {
+    const fullName = `${p.lastName}, ${p.firstName}`;
+    const opt = document.createElement("option");
+    opt.value = fullName;
+    opt.textContent = fullName;
+    dropdown.appendChild(opt);
+  });
+
+  // You can also init Service Year and Month here
+}
+
+function validateSharedCheckbox() {
+  const priv = document.getElementById("reportPriv2").value;
+  const hours = document.getElementById("reportHours").value.trim();
+  const shared = document.getElementById("reportShared");
+
+  if (["Regular Pioneer", "Special Pioneer", "Field Missionary"].includes(priv)) {
+    if (!hours || parseInt(hours) === 0) {
+      // Walang laman or 0: uncheck
+      shared.checked = false;
+    } else if (parseInt(hours) > 0) {
+      // May laman >0: check
+      shared.checked = true;
+    }
+  }
+}
+function preventInvalidInput(event) {
+  // Prevent e, E, +, -, ., or anything that leads to decimal/negative
+  const invalidKeys = ["e", "E", "+", "-", "."];
+  if (invalidKeys.includes(event.key)) {
+    event.preventDefault();
+  }
+}
+
+function validateHoursInput(input) {
+  const value = input.value.trim();
+
+  // Remove if not a positive whole number
+  if (!/^[1-9][0-9]*$/.test(value)) {
+    input.value = "";
+  }
+}
+
+function validateAuxiliaryCheckbox() {
+  const priv = document.getElementById("reportPriv2").value;
+  const hours = document.getElementById("reportHours").value.trim();
+  const shared = document.getElementById("reportShared");
+  const aux = document.getElementById("auxPioneerCheckbox");
+
+  if (priv === "Continuous Auxiliary Pioneer") {
+    if (!hours || parseInt(hours) === 0) {
+      // No hours
+      shared.checked = false;
+      aux.checked = false;
+    } else if (parseInt(hours) > 0) {
+      // Has hours
+      shared.checked = true;
+      aux.checked = true;
+    }
+  }
+}
+function validatePublisherAuxiCheckbox() {
+  const priv = document.getElementById("reportPriv2").value;
+  const auxiQuestion = document.getElementById("auxiQuestion").value;
+  const hours = document.getElementById("reportHours").value.trim();
+  const shared = document.getElementById("reportShared");
+  const aux = document.getElementById("auxPioneerCheckbox");
+
+  if (priv === "Publisher/Auxi" && auxiQuestion === "Yes") {
+    if (!hours || parseInt(hours) === 0) {
+      // No hours
+      shared.checked = false;
+      aux.checked = false;
+    }
+  }
+}
+function handlePublisherAuxiLogic() {
+  const priv = document.getElementById("reportPriv2").value;
+  const auxiQuestion = document.getElementById("auxiQuestion").value;
+  const hoursInput = document.getElementById("reportHours");
+  const studiesInput = document.getElementById("reportStudies");
+  const shared = document.getElementById("reportShared");
+  const aux = document.getElementById("auxPioneerCheckbox");
+  const auxDiv = document.getElementById("auxPioneerDiv");
+
+  const hours = hoursInput.value.trim();
+
+  if (priv === "Publisher/Auxi" && auxiQuestion === "Yes") {
+    // ✅ When YES
+    auxDiv.classList.remove("hidden");
+    aux.disabled = true;
+
+    hoursInput.disabled = false;
+    studiesInput.disabled = false;
+
+    if (!hours || parseInt(hours) === 0) {
+      shared.checked = false;
+      aux.checked = false;
+    } else if (parseInt(hours) > 0) {
+      shared.checked = true;
+      aux.checked = true;
+    }
+  }
+  else if (priv === "Publisher/Auxi" && auxiQuestion === "No") {
+    // ✅ When NO
+    auxDiv.classList.add("hidden");
+    aux.checked = false;
+    aux.disabled = false;
+
+    hoursInput.disabled = true;
+    hoursInput.value = "";
+
+    studiesInput.disabled = false;
+
+    shared.checked = false;
+    shared.disabled = false; // ✅ user can manually check/uncheck
+  }
+}
+function setDefaultServiceYearAndMonth() {
+  if (currentUser?.role !== "user") return; // Only apply for User Role
+
+  const yearSelect = document.getElementById("reportYear");
+  const monthSelect = document.getElementById("reportMonthYear");
+
+  const today = new Date();
+  const thisYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+
+  // Service Year
+  const serviceYear = currentMonth >= 9 ? thisYear + 1 : thisYear;
+  yearSelect.innerHTML = "";
+  const optYear = document.createElement("option");
+  optYear.value = serviceYear;
+  optYear.text = serviceYear;
+  optYear.selected = true;
+  yearSelect.appendChild(optYear);
+  yearSelect.disabled = true;
+
+  // Month and Year (literal previous month)
+  let prevMonth = currentMonth - 1;
+  let prevYear = thisYear;
+  if (prevMonth < 0) {
+    prevMonth = 11;
+    prevYear--;
+  }
+
+  const monthNames = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+  const formattedMonth = `${monthNames[prevMonth]} ${prevYear}`;
+  monthSelect.innerHTML = "";
+  const optMonth = document.createElement("option");
+  optMonth.value = formattedMonth;
+  optMonth.text = formattedMonth;
+  optMonth.selected = true;
+  monthSelect.appendChild(optMonth);
+  monthSelect.disabled = true;
+}
+function validateSharedCheckboxUpdate() {
+  const priv = document.getElementById("updatePriv2").value;
+  const hours = document.getElementById("updateHours").value.trim();
+  const shared = document.getElementById("updateShared");
+
+  if (["Regular Pioneer", "Special Pioneer", "Field Missionary"].includes(priv)) {
+    if (!hours || parseInt(hours) === 0) {
+      shared.checked = false;
+    }
+  }
+}
+function validateContinuousAuxiliaryUpdate() {
+  const priv = document.getElementById("updatePriv2").value;
+  const hours = document.getElementById("updateHours").value.trim();
+  const shared = document.getElementById("updateShared");
+  const aux = document.getElementById("auxPioneerCheckboxUpdate");
+  const auxDiv = document.getElementById("auxPioneerDivUpdate");
+
+  if (priv === "Continuous Auxiliary Pioneer") {
+    // Always unhide Auxiliary Pioneer checkbox
+    auxDiv.classList.remove("hidden");
+    aux.disabled = true;
+
+    if (!hours || parseInt(hours) === 0) {
+      shared.checked = false;
+      aux.checked = false;
+    } else if (parseInt(hours) > 0) {
+      shared.checked = true;
+      aux.checked = true;
+    }
+  } else {
+    // For other Privileges, hide the Auxiliary Pioneer div
+    auxDiv.classList.add("hidden");
+    aux.checked = false;
+    aux.disabled = false;
+  }
+}
+function validateUpdatePrivilegeLogic() {
+  const priv = document.getElementById("updatePriv2").value;
+  const auxiAnswer = document.getElementById("auxiQuestionUpdate").value;
+
+  const hours = document.getElementById("updateHours");
+  const studies = document.getElementById("updateStudies");
+  const shared = document.getElementById("updateShared");
+  const auxDiv = document.getElementById("auxPioneerDivUpdate");
+  const auxBox = document.getElementById("auxPioneerCheckboxUpdate");
+  const auxiDiv = document.getElementById("auxiQuestionDivUpdate");
+
+  // Reset
+  hours.disabled = true;
+  studies.disabled = true;
+  shared.disabled = true;
+  auxDiv.classList.add("hidden");
+  auxBox.checked = false;
+  auxiDiv.classList.add("hidden");
+
+  if (["Regular Pioneer", "Special Pioneer", "Field Missionary"].includes(priv)) {
+    hours.disabled = false;
+    studies.disabled = false;
+    shared.disabled = true;
+    auxDiv.classList.add("hidden");
+  } else if (priv === "Continuous Auxiliary Pioneer") {
+    hours.disabled = false;
+    studies.disabled = false;
+    shared.disabled = true;
+    auxDiv.classList.remove("hidden");
+    auxBox.disabled = true;
+    auxBox.checked = parseInt(hours.value) > 0;
+  } else if (priv === "Publisher/Auxi") {
+    auxiDiv.classList.remove("hidden");
+
+    if (auxiAnswer === "Yes") {
+      hours.disabled = false;
+      studies.disabled = false;
+      shared.disabled = true;
+      auxDiv.classList.remove("hidden");
+      auxBox.disabled = true;
+      auxBox.checked = parseInt(hours.value) > 0;
+    } else if (auxiAnswer === "No") {
+      hours.disabled = true;
+      hours.value = "";
+      studies.disabled = false;
+      shared.disabled = false;
+      auxDiv.classList.add("hidden");
+      auxBox.checked = false;
+    } else {
+      // Walang selection
+      hours.disabled = true;
+      studies.disabled = true;
+      shared.disabled = true;
+      auxDiv.classList.add("hidden");
+      auxBox.checked = false;
+    }
+  }
+console.log("validateUpdatePrivilegeLogic called");
+console.log("updateHandleHoursChange called");
+
+}
+function populateUpdatePublisherDropdown() {
+  const dropdown = document.getElementById("updatePublisher");
+  dropdown.innerHTML = '<option value="">-- Select --</option>';
+
+  publishers.forEach(p => {
+    const fullName = `${p.lastName}, ${p.firstName}`;
+    const opt = document.createElement("option");
+    opt.value = fullName;
+    opt.textContent = fullName;
+    dropdown.appendChild(opt);
+  });
+}
+
+</script>
+</body>
+</html>
