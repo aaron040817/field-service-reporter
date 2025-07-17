@@ -84,6 +84,24 @@
 }
 
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+  apiKey: "AIzaSyDbKyWaYclW4jZ2eQ0qrK_PIfrh-7sahwY",
+  authDomain: "field-service-reporter.firebaseapp.com",
+  projectId: "field-service-reporter",
+  storageBucket: "field-service-reporter.firebasestorage.app",
+  messagingSenderId: "434729902657",
+  appId: "1:434729902657:web:c1b06d2695a47924f89cc0",
+  measurementId: "G-9N52K2CGDD"
+};
+// Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
 </head>
 <body>
 <section id="userSection" class="hidden">
