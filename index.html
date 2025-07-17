@@ -2553,7 +2553,9 @@ function populateUpdatePublisherDropdown() {
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
-  function loadReport(publisherName, serviceYear, month) {
+  
+</script>
+function loadReport(publisherName, serviceYear, month) {
   const docRef = db.collection("reports").doc(`${publisherName}_${serviceYear}_${month}`);
   docRef.get().then((doc) => {
     if (doc.exists) {
@@ -2588,9 +2590,6 @@ async function loadReportsFromFirebase() {
   // Refresh dropdowns, etc.
   refreshAllPublisherDropdowns();
 }
-
-</script>
-
 
 </script>
 </body>
