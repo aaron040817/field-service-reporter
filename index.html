@@ -84,25 +84,9 @@
 }
 
 </style>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-<script>
-  const firebaseConfig = {
-  apiKey: "AIzaSyDbKyWaYclW4jZ2eQ0qrK_PIfrh-7sahwY",
-  authDomain: "field-service-reporter.firebaseapp.com",
-  projectId: "field-service-reporter",
-  storageBucket: "field-service-reporter.firebasestorage.app",
-  messagingSenderId: "434729902657",
-  appId: "1:434729902657:web:c1b06d2695a47924f89cc0",
-  measurementId: "G-9N52K2CGDD"
-};
-// Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-</script>
 </head>
+
 <body>
 <section id="userSection" class="hidden">
   <h2>Manage Users</h2>
@@ -511,7 +495,7 @@
 
   // User: Submit Request
   if (id === "submitRequestSection") {
-    saveReportToFirebase(report);
+    loadReportsFromLocalStorage();
     initSubmitRequestSection();
   }
 
@@ -572,7 +556,6 @@ function addPublisher() {
   publishers.push(publisher);
   currentPubIndex = publishers.length - 1;
   savePublishersToLocalStorage();
-  savePublisherToFirebase(publisher);  // <--- ADD THIS LINE
   loadPublisher(publishers[currentPubIndex]);
   alert("Publisher added.");
   clearPublisherForm();
@@ -1092,7 +1075,7 @@ function initReportSection() {
   // ✅ Save the report
   reports.push({ name, fsg, priv, sy, my, hours, studies, shared, auxPioneer });
   currentReportIndex = reports.length - 1;
-  saveReportToFirebase(report);
+  localStorage.setItem("reports", JSON.stringify(reports));
   alert("Report saved.");
   clearReportForm();
   initReportSection();
@@ -1480,17 +1463,6 @@ function savePublishersToLocalStorage() {
   localStorage.setItem("publishers", JSON.stringify(publishers));
 }
 
-  async function savePublisherToFirebase(publisher) {
-    try {
-      const docId = `${publisher.lastName}_${publisher.firstName}_${publisher.birthdate}`.replace(/\s+/g, "_");
-      await db.collection("publishers").doc(docId).set(publisher);
-      console.log("Saved to Firebase:", publisher);
-    } catch (error) {
-      console.error("Error saving to Firebase:", error);
-    }
-  }
-
-
 function loadPublishersFromLocalStorage() {
   console.log("Loading publishers from local storage...");
   const saved = localStorage.getItem("publishers");
@@ -1515,7 +1487,7 @@ function loadPublishersFromLocalStorage() {
 window.onload = () => {
   loadPublishersFromLocalStorage();
   console.log("On load - publishers array:", publishers);  // <-- Dito mo ilalagay
-  saveReportToFirebase(report);
+  loadReportsFromLocalStorage();
   savePublishersToLocalStorage();
   refreshAllPublisherDropdowns(); // Idagdag dito
 
@@ -1532,6 +1504,13 @@ window.onload = () => {
 
 </script>
 <script>
+function loadReportsFromLocalStorage() {
+  const saved = localStorage.getItem("reports");
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    reports.push(...parsed);
+  }
+}
 function initSubmitRequest() {
   const dropdown = document.getElementById("requestPublisher");
   dropdown.innerHTML = '<option value="">-- Select --</option>';
@@ -2541,8 +2520,7 @@ function populateUpdatePublisherDropdown() {
     dropdown.appendChild(opt);
   });
 }
+
 </script>
 </body>
 </html>
-
-<!-- Trigger redeploy -->
