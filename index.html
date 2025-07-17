@@ -90,19 +90,28 @@
 
 </head>
 <script>
-  // TODO: Palitan mo ito ng sarili mong config from Firebase Console
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Initialize Firebase
-  const app = firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDbKyWaYclW4jZ2eQ0qrK_PIfrh-7sahwY",
+  authDomain: "field-service-reporter.firebaseapp.com",
+  projectId: "field-service-reporter",
+  storageBucket: "field-service-reporter.firebasestorage.app",
+  messagingSenderId: "434729902657",
+  appId: "1:434729902657:web:c1b06d2695a47924f89cc0",
+  measurementId: "G-9N52K2CGDD"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+ 
 </script>
 
 <body>
@@ -574,6 +583,7 @@ function addPublisher() {
   publishers.push(publisher);
   currentPubIndex = publishers.length - 1;
   savePublishersToLocalStorage();
+  savePublisherToFirebase(publisher);  // <--- ADD THIS LINE
   loadPublisher(publishers[currentPubIndex]);
   alert("Publisher added.");
   clearPublisherForm();
@@ -1480,6 +1490,17 @@ function exportToExcel() {
 function savePublishersToLocalStorage() {
   localStorage.setItem("publishers", JSON.stringify(publishers));
 }
+<script>
+  async function savePublisherToFirebase(publisher) {
+    try {
+      const docId = `${publisher.lastName}_${publisher.firstName}_${publisher.birthdate}`.replace(/\s+/g, "_");
+      await db.collection("publishers").doc(docId).set(publisher);
+      console.log("Saved to Firebase:", publisher);
+    } catch (error) {
+      console.error("Error saving to Firebase:", error);
+    }
+  }
+</script>
 
 function loadPublishersFromLocalStorage() {
   console.log("Loading publishers from local storage...");
