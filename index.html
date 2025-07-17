@@ -84,8 +84,26 @@
 }
 
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 
 </head>
+<script>
+  // TODO: Palitan mo ito ng sarili mong config from Firebase Console
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  // Initialize Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
 
 <body>
 <section id="userSection" class="hidden">
@@ -495,7 +513,7 @@
 
   // User: Submit Request
   if (id === "submitRequestSection") {
-    loadReportsFromLocalStorage();
+    saveReportToFirebase(report);
     initSubmitRequestSection();
   }
 
@@ -1075,7 +1093,7 @@ function initReportSection() {
   // ✅ Save the report
   reports.push({ name, fsg, priv, sy, my, hours, studies, shared, auxPioneer });
   currentReportIndex = reports.length - 1;
-  localStorage.setItem("reports", JSON.stringify(reports));
+  saveReportToFirebase(report);
   alert("Report saved.");
   clearReportForm();
   initReportSection();
@@ -1487,7 +1505,7 @@ function loadPublishersFromLocalStorage() {
 window.onload = () => {
   loadPublishersFromLocalStorage();
   console.log("On load - publishers array:", publishers);  // <-- Dito mo ilalagay
-  loadReportsFromLocalStorage();
+  saveReportToFirebase(report);
   savePublishersToLocalStorage();
   refreshAllPublisherDropdowns(); // Idagdag dito
 
@@ -1504,13 +1522,6 @@ window.onload = () => {
 
 </script>
 <script>
-function loadReportsFromLocalStorage() {
-  const saved = localStorage.getItem("reports");
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    reports.push(...parsed);
-  }
-}
 function initSubmitRequest() {
   const dropdown = document.getElementById("requestPublisher");
   dropdown.innerHTML = '<option value="">-- Select --</option>';
@@ -2543,17 +2554,7 @@ function populateUpdatePublisherDropdown() {
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
 </script>
-function saveReport(publisherName, serviceYear, month, data) {
-  db.collection("reports")
-    .doc(`${publisherName}_${serviceYear}_${month}`)
-    .set(data)
-    .then(() => {
-      alert("Report saved!");
-    })
-    .catch(error => {
-      console.error("Error saving report:", error);
-    });
-}
+
 function loadReport(publisherName, serviceYear, month) {
   const docRef = db.collection("reports").doc(`${publisherName}_${serviceYear}_${month}`);
   docRef.get().then((doc) => {
@@ -2567,6 +2568,27 @@ function loadReport(publisherName, serviceYear, month) {
   }).catch((error) => {
     console.error("Error loading report:", error);
   });
+}
+function saveReportToFirebase(report) {
+  db.collection("reports")
+    .add(report)
+    .then(() => {
+      alert("Report saved to Firebase!");
+    })
+    .catch((error) => {
+      console.error("Error saving report: ", error);
+      alert("Error saving report.");
+    });
+}
+async function loadReportsFromFirebase() {
+  reports.length = 0; // Clear current
+  const snapshot = await db.collection("reports").get();
+  snapshot.forEach(doc => {
+    reports.push(doc.data());
+  });
+
+  // Refresh dropdowns, etc.
+  refreshAllPublisherDropdowns();
 }
 
 </script>
