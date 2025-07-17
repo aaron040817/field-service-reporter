@@ -1490,7 +1490,7 @@ function exportToExcel() {
 function savePublishersToLocalStorage() {
   localStorage.setItem("publishers", JSON.stringify(publishers));
 }
-<script>
+
   async function savePublisherToFirebase(publisher) {
     try {
       const docId = `${publisher.lastName}_${publisher.firstName}_${publisher.birthdate}`.replace(/\s+/g, "_");
@@ -1500,7 +1500,7 @@ function savePublishersToLocalStorage() {
       console.error("Error saving to Firebase:", error);
     }
   }
-</script>
+
 
 function loadPublishersFromLocalStorage() {
   console.log("Loading publishers from local storage...");
